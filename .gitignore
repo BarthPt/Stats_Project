@@ -127,3 +127,51 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+import pandas as pd
+import numpy as np
+import seaborn as sns 
+import matplotlib.pyplot as plt
+import statsmodels as smp
+import scipy.stats as stats
+import pylab
+
+rename_columns = {'JURISDICTION_CODE':'LOCATION_JURISDICTION_CODE', 
+    'JURISDICTION_DESCRIPTION':'LOCATION_JURISDICTION_DESCRIPTION', 
+    'ASK_FOR_CONSENT_FLG':'ASK_FOR_CONSENT_FLAG', 
+    'CONSENT_GIVEN_FLG':'CONSENT_GIVEN_FLAG'}
+#importing file and formating columns to numerical
+stops2020 = pd.read_excel('sqf-2020.xlsx').rename(columns = rename_columns)
+
+#Normaling nulls. Lots of '' instead null
+stops2020 = stops2020.replace(to_replace='(null)',value='NA')
+stops2020 = stops2020.replace(to_replace=np.nan,value='NA')
+
+
+#find groups patthern
+variables_pattherns = ['LOCATION', 'PHYSICAL', 'SUSPECT', 'OFFICER', 'SEARCH', 'FLAG']
+agged_variables, columns_to_drop = {}, []
+for patthern in variables_pattherns:
+    agged_variables[patthern] = stops2020.columns[stops2020.columns.str.contains(patthern)].tolist()
+    globals()[f'stops2020_{patthern}'] = stops2020[agged_variables[patthern]]
+    columns_to_drop += agged_variables[patthern]
+    print(str(f'stops2020_{patthern}'))
+    
+stops20_r_pat = stops2020.drop(columns=columns_to_drop)
+#Creating groups of variables 
+for group in agged_variables:
+    lst_col = agged_variables[group]
+    for col in lst_col:
+        print(stops2020[col].value_counts())
+        
+plt.hist(stops2020[agged_variables['LOCATION'][-1]], bins = 5)
+
+arrested = stops2020[stops2020[agged_variables['SUSPECT'][1]]=='Y']
+arrested.groupby(by='STOP_LOCATION_BORO_NAME')[agged_variables['SUSPECT'][15]].value_counts() / arrested.shape[0]
+
+#vs
+
+stops2020.groupby(by='STOP_LOCATION_BORO_NAME')[agged_variables['SUSPECT'][15]].value_counts() / stops2020.shape[0]
+
+#Arrested ratio over stops by Location
+stops2020.groupby(by='STOP_LOCATION_BORO_NAME')[agged_variables['SUSPECT'][1]].value_counts()
